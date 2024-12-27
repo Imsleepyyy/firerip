@@ -9,7 +9,13 @@ async function downloadChapter(chapter, dest, cb) {
     const html = await fetch(chapter).then(r => r.text());
     const { document } = new JSDOM(html).window;
     document.querySelectorAll("[free=\"\"]").forEach(el => el.setAttribute("free", true))
-    document.querySelector("video-player").setAttribute("free", true)
+
+    const videoPlayer = document.querySelector("video-player");
+    if (!videoPlayer) {
+        return;
+    }
+    videoPlayer.setAttribute("free", true);
+
     // oldmethod_vimeo = atob(document.querySelector("global-data").getAttribute("vimeo")
     function decodeAndProcess(encodedString) {
         try {
@@ -38,7 +44,6 @@ async function downloadChapter(chapter, dest, cb) {
         }
     const vimeoId = decodeAndProcess(document.querySelector("global-data").getAttribute("vimeo")).Decoded;
     const youtubeId = atob(document.querySelector("global-data").getAttribute("youtube"));
-    console.log(vimeoId)
     if (!vimeoId && !youtubeId) return;
 
     // Youtube video
