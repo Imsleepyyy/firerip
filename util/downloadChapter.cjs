@@ -9,7 +9,13 @@ async function downloadChapter(chapter, dest, cb) {
     const html = await fetch(chapter).then(r => r.text());
     const { document } = new JSDOM(html).window;
     document.querySelectorAll("[free=\"\"]").forEach(el => el.setAttribute("free", true))
-    document.querySelector("video-player").setAttribute("free", true)
+
+    const videoPlayer = document.querySelector("video-player");
+    if (!videoPlayer) {
+        return;
+    }
+    videoPlayer.setAttribute("free", true);
+
     // oldmethod_vimeo = atob(document.querySelector("global-data").getAttribute("vimeo")
     function decodeAndProcess(encodedString) {
         try {
@@ -18,13 +24,26 @@ async function downloadChapter(chapter, dest, cb) {
               // debugger
               const parts = decoded.split('=').map(part => part.trim());
                for (let part of parts) {
-                  let decodedPart = atob(part);
+                  let decodedPart = atob(part).replace(/^\/|\/$/g, '');
                   if (decodedPart.includes("courses")) {
+                    if(!isNaN(decodedPart.split('/').at(-1))){
                       return {
                           Decoded: Number(decodedPart.split('/').at(-1))
                       };
+                    }
                   }
               }}
+            if (decoded.includes("==")) {
+              const parts = decoded.split("==").map(part => part.trim());
+              for (let part of parts) {
+                let decodedPart = atob(part);
+                  if (!isNaN(decodedPart)) {
+                    return {
+                      Decoded: decodedPart
+                    };
+                  }
+                }
+            }
             let vid = atob(decoded).split('\u0088')[0].split('/').at(-1);
             return {
                 Decoded: Number(vid)
@@ -36,9 +55,13 @@ async function downloadChapter(chapter, dest, cb) {
                 };
             }
         }
-    const vimeoId = decodeAndProcess(document.querySelector("global-data").getAttribute("vimeo")).Decoded;
+    const encodedString = document.querySelector("global-data").getAttribute("vimeo");
+    if (encodedString=== undefined) {
+        // sign in required for these id
+        return;
+    }
+    const vimeoId = decodeAndProcess(encodedString).Decoded;
     const youtubeId = atob(document.querySelector("global-data").getAttribute("youtube"));
-    console.log(vimeoId)
     if (!vimeoId && !youtubeId) return;
 
     // Youtube video
